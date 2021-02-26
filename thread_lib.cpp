@@ -163,6 +163,7 @@ void cpu::init(thread_startfunc_t func, void* v) {
 		throw ba;
 	}
 	interrupt_disable();
+	impl_ptr = new impl;
 	interrupt_vector_table[TIMER] = &impl::interrupt_timer;
 	while (!impl::ready_queue.empty()) {
 		impl::current_thread = impl::ready_queue.front();
