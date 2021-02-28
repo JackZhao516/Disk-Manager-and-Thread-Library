@@ -43,6 +43,15 @@ public:
 		thread::yield();
 	}
 
+	static void ready_queue_push_helper(context* t){
+		try {
+				cpu::impl::ready_queue.push(t);
+			}
+		catch (std::bad_alloc& ba) {
+				throw ba;
+			}
+	}
+
 	static std::queue<context*> ready_queue;
 	static context main_program;
 	static context* current_thread; // current running thread, should be set 
@@ -59,17 +68,35 @@ context* cpu::impl::current_thread;
 // ************
 class thread::impl {
 public:
-	impl() {}
+	impl(thread_startfunc_t func, void* arg) {
+		make_context(thread_context, func, arg);
+	}
+
+	void join_impl() {
+		try {
+			thread_context->exit_queue.push(cpu::impl::current_thread);
+		}
+		catch (std::bad_alloc& ba) {
+			throw ba;
+		}
+		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
+	};
+
+	static void make_context(context* t, thread_startfunc_t func, void* arg) {
+		t = new context;
+		t->stack_address = new char[STACK_SIZE];
+		t->ucontext_ptr->uc_stack.ss_sp = t->stack_address;
+		t->ucontext_ptr->uc_stack.ss_size = STACK_SIZE;
+		t->ucontext_ptr->uc_stack.ss_flags = 0;
+		t->ucontext_ptr->uc_link = nullptr;
+		makecontext(t->ucontext_ptr, (void (*)()) thread::impl::wrapper_func, 3, func, arg, t);
+		cpu::impl::ready_queue.push(t);
+	}
 
 	static void release_resource(context* thread_context) {
 		// dump exit_queue into ready_queue
 		while (!thread_context->exit_queue.empty()) {
-			try {
-				cpu::impl::ready_queue.push(thread_context->exit_queue.front());
-			}
-			catch (std::bad_alloc& ba) {
-				throw ba;
-			}
+			cpu::impl::ready_queue_push_helper(thread_context->exit_queue.front());
 		}
 
 		// release heap resources
@@ -96,15 +123,7 @@ public:
 thread::thread(thread_startfunc_t func, void* arg) {
 	cpu::interrupt_disable();
 	try {
-		this->impl_ptr = new impl;
-		this->impl_ptr->thread_context = new context;
-		this->impl_ptr->thread_context->stack_address = new char[STACK_SIZE];
-		this->impl_ptr->thread_context->ucontext_ptr->uc_stack.ss_sp = this->impl_ptr->thread_context->stack_address;
-		this->impl_ptr->thread_context->ucontext_ptr->uc_stack.ss_size = STACK_SIZE;
-		this->impl_ptr->thread_context->ucontext_ptr->uc_stack.ss_flags = 0;
-		this->impl_ptr->thread_context->ucontext_ptr->uc_link = nullptr;
-		makecontext(this->impl_ptr->thread_context->ucontext_ptr, (void (*)()) thread::impl::wrapper_func, 3, func, arg, this->impl_ptr->thread_context);
-        cpu::impl::ready_queue.push(this->impl_ptr->thread_context);
+		this->impl_ptr = new impl(func, arg);
 	}
 	catch (std::bad_alloc& ba) {
 		throw ba;
@@ -121,13 +140,7 @@ thread::~thread() {
 void thread::join() {
 	cpu::interrupt_disable();
 	if (this->impl_ptr->thread_context) {
-		try {
-			this->impl_ptr->thread_context->exit_queue.push(cpu::impl::current_thread);
-		}
-		catch (std::bad_alloc& ba) {
-			throw ba;
-		}
-		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
+		impl_ptr->join_impl();
 	}
 	cpu::interrupt_enable();
 };
@@ -135,12 +148,7 @@ void thread::join() {
 void thread::yield() {
 	cpu::interrupt_disable();
 	if (!cpu::impl::ready_queue.empty()) {
-		try {
-			cpu::impl::ready_queue.push(cpu::impl::current_thread);
-		}
-		catch (std::bad_alloc& ba) {
-			throw ba;
-		}
+		cpu::impl::ready_queue_push_helper(cpu::impl::current_thread);
 		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
 	}
 	cpu::interrupt_enable();
@@ -151,17 +159,10 @@ void thread::yield() {
 // ***************
 void cpu::init(thread_startfunc_t func, void* arg) {
     //initialize the main_program
-    context* ini_context = new context;
+    context* init_context = new context;
     try {
         getcontext(impl::main_program.ucontext_ptr);
-
-        ini_context->stack_address = new char[STACK_SIZE];
-        ini_context->ucontext_ptr->uc_stack.ss_sp = ini_context->stack_address;
-        ini_context->ucontext_ptr->uc_stack.ss_size = STACK_SIZE;
-        ini_context->ucontext_ptr->uc_stack.ss_flags = 0;
-        ini_context->ucontext_ptr->uc_link = nullptr;
-        makecontext(ini_context->ucontext_ptr, (void (*)()) thread::impl::wrapper_func, 3, func, arg, ini_context);
-        impl::ready_queue.push(ini_context);
+		thread::impl::make_context(init_context, func, arg);
 	}
 	catch (std::bad_alloc& ba) {
 		throw ba;
@@ -222,13 +223,7 @@ public:
 		func_with_lock.erase(cpu::impl::current_thread);
 		status = true;
 		if (!lock_queue.empty()) {
-			try {
-				cpu::impl::ready_queue.push(lock_queue.front());
-			}
-			catch (std::bad_alloc& ba) {
-				throw ba;
-			}
-			
+			cpu::impl::ready_queue_push_helper(lock_queue.front());
 			lock_queue.pop();
 			status = false;
 		}
@@ -287,12 +282,7 @@ public:
 		m.impl_ptr->func_with_lock.erase(cpu::impl::current_thread);
 		m.impl_ptr->status = true;
 		if (!m.impl_ptr->lock_queue.empty()) {
-			try {
-				cpu::impl::ready_queue.push(m.impl_ptr->lock_queue.front());
-			}
-			catch (std::bad_alloc& ba) {
-				throw ba;
-			}
+			cpu::impl::ready_queue_push_helper(m.impl_ptr->lock_queue.front());
 			m.impl_ptr->lock_queue.pop();
 			m.impl_ptr->status = false;
 		}
@@ -302,27 +292,14 @@ public:
 
 	void impl_signal() {
 		if (!wait_queue.empty()) {
-			try {
-				cpu::impl::ready_queue.push(wait_queue.front());
-			}
-			catch (std::bad_alloc& ba) {
-				throw ba;
-			}	
+			cpu::impl::ready_queue_push_helper(wait_queue.front());
 		}
 	}
 
 	void impl_broadcast() {
 		if (!wait_queue.empty()) {
-			for (unsigned int i = 0; i < wait_queue.size(); i++) {
-				try {
-					cpu::impl::ready_queue.push(wait_queue.front());
-				}
-				catch (std::bad_alloc& ba) {
-					throw ba;
-				}
-				
-				wait_queue.pop();
-			}
+			cpu::impl::ready_queue_push_helper(wait_queue.front());
+			wait_queue.pop();
 		}
 	}
 };
