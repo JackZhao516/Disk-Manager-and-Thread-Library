@@ -288,7 +288,7 @@ public:
 	}
 
 	void impl_broadcast() {
-		if (!wait_queue.empty()) {
+		while (!wait_queue.empty()) {
 			cpu::impl::ready_queue_push_helper(wait_queue.front());
 			wait_queue.pop();
 		}
