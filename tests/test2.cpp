@@ -80,6 +80,9 @@ void consumer3(void* a)
 void producer(void* a)
 {
 	mu1.lock();
+	thread consumer1((thread_startfunc_t)consumer1, (void*) "consumer1 created");
+	thread consumer2((thread_startfunc_t)consumer2, (void*) "consumer2 created");
+	thread consumer3((thread_startfunc_t)consumer3, (void*) "consumer3 created");
 	while (numCokes == MAX) {
 		cout << "producer wait called" << endl;
 		waitingProducers.wait(mu1);

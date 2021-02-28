@@ -5,11 +5,11 @@
 using std::cout;
 using std::endl;
 
-// Error handling: Calling cv::wait without checking a condition in a while loop
+// Error handling: Calling cv::wait on one cv with different mutexes
 
 int g = 0;
 
-mutex mutex1;
+mutex mutex1, mutex2;
 cv cv1;
 
 int child_done = 0;		// global variable; shared between the two threads
@@ -19,9 +19,11 @@ void child(void* a)
 	char* message = (char*)a;
 	mutex1.lock();
 	cout << "child called with message " << message << ", setting child_done = 1" << endl;
-	mutex1.unlock();
+	mutex2.lock();
 	child_done = 1;
 	cv1.signal();
+	mutex2.unlock();
+	mutex1.unlock();
 }
 
 void parent(void* a)
@@ -34,9 +36,10 @@ void parent(void* a)
 	thread t1((thread_startfunc_t)child, (void*) "test message");
 
 	mutex1.lock();
-	if (!child_done) { 
+	while (!child_done) {
 		cout << "parent waiting for child to run\n";
 		cv1.wait(mutex1);
+		cv1.wait(mutex2);
 	}
 	cout << "parent finishing" << endl;
 	mutex1.unlock();

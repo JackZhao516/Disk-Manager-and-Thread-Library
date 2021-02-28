@@ -18,10 +18,10 @@ void thread1(void* a)
 {
 	char* message = (char*)a;
 	mu1.lock();
-	thread t2((thread_startfunc_t)thread2, (void*) "thread2 created");
 	cout << message << ", setting thread1_done = 1" << endl;
 	thread1_done = 1;
 	thread::yield();
+	cv1.signal();
 	mu1.unlock();
 }
 
@@ -31,8 +31,8 @@ void thread2(void* a)
 	mu1.lock();
 	cout << message << ", setting thread2_done = 1" << endl;
 	thread2_done = 1;
-	thread t3((thread_startfunc_t)thread3, (void*) "thread3 created");
 	thread::yield();
+	cv1.signal();
 	mu1.unlock();
 }
 
@@ -42,25 +42,27 @@ void thread3(void* a)
 	mu1.lock();
 	cout << message << ", setting thread3_done = 1" << endl;
 	thread3_done = 1;
-	thread::yield(); // yield to itself
+	thread::yield();
 	cv1.signal();
 	mu1.unlock();
 }
 
 void parentThread(void* a)
 {
-	intptr_t arg = (intptr_t)a;
 	mu1.lock();
-	cout << "parent called with arg " << arg << endl;
+	cout << "parent called"<< endl;
 	mu1.unlock();
 
 	thread t1((thread_startfunc_t)thread1, (void*) "thread1 created");
+	thread t2((thread_startfunc_t)thread2, (void*) "thread2 created");
+	thread t3((thread_startfunc_t)thread3, (void*) "thread3 created");
 
 	mu1.lock();
 	while (!thread1_done || !thread2_done || !thread3_done) {
 		cout << "parent waiting for child to run\n";
 		cv1.wait(mu1);
 	}
+	thread::yield();
 	cout << "parent finished" << endl;
 	mu1.unlock();
 }
