@@ -9,5 +9,5 @@
 	tests/test7.cpp
 	tests/test8.cpp
 	tests/test9.cpp
-	tests/test_main.cpp
+
 	
