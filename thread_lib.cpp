@@ -108,7 +108,7 @@ public:
 		func(arg);
 		cpu::interrupt_disable();
 		context->finish = true;
-		swapcontext(context->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
+		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
 	}
 
 	context* thread_context;  // Not destroy with the dtor of thread,
