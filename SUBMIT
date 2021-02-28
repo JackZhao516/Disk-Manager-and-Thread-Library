@@ -1,13 +1,13 @@
 	thread_lib.cpp
-	test_example.cpp
-	test1.cpp
-	test2.cpp
-	test3.cpp
-	test4.cpp
-	test5.cpp
-	test6.cpp
-	test7.cpp
-	test8.cpp
-	test9.cpp
-	test_main.cpp
+	tests/test_example.cpp
+	tests/test1.cpp
+	tests/test2.cpp
+	tests/test3.cpp
+	tests/test4.cpp
+	tests/test5.cpp
+	tests/test6.cpp
+	tests/test7.cpp
+	tests/test8.cpp
+	tests/test9.cpp
+	tests/test_main.cpp
 	
