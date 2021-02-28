@@ -14,7 +14,7 @@ libthread.o: ${THREAD_OBJS}
 	ld -r -o $@ ${THREAD_OBJS}
 
 # Compile an application program
-app: app.cpp libthread.o libcpu.o
+app: thread_lib.cpp test_example.cpp libcpu.o
 	${CC} -o $@ $^ -ldl -pthread
 
 # Generic rules for compiling a source file to an object file

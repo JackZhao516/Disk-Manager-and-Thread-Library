@@ -1,3 +1,4 @@
+#include <iostream>
 #include <queue>
 #include <unordered_set>
 #include <stdexcept>
@@ -43,9 +44,14 @@ public:
 							// returned from uc_link, release resource for context*.
 							// Remember to set back to nullptr before you setcontext
 							// to a new thread.
+	static bool init;
 };
 
-
+std::queue<context*> cpu::impl::ready_queue;
+ucontext_t* cpu::impl::main_program;
+context* cpu::impl::current_thread = nullptr;
+context* cpu::impl::before_thread = nullptr;
+bool cpu::impl::init = false;
 
 
 // ************
@@ -55,6 +61,11 @@ class thread::impl {
 public:
 	impl() {
 		thread_context = new context;
+	}
+
+	void func_wrapper(thread_startfunc_t t) {
+		cpu::interrupt_enable();
+		
 	}
 
 	static void release_resource(context* thread_context) {
@@ -156,13 +167,27 @@ void thread::yield() {
 // *  cpu_inint  *
 // ***************
 void cpu::init(thread_startfunc_t func, void* v) {
+    //initialize the main_program
+    try {
+        impl::main_program = new ucontext_t;
+        char* stack = new char[STACK_SIZE];
+        impl::main_program->uc_stack.ss_sp = stack;
+        impl::main_program->uc_stack.ss_size = STACK_SIZE;
+        impl::main_program->uc_stack.ss_flags = 0;
+        impl::main_program->uc_link = nullptr;
+        getcontext(impl::main_program);
+    }
+    catch (std::bad_alloc& ba) {
+        throw ba;
+    }
+    interrupt_enable();
 	try {
 		thread(func, v);
 	}
 	catch (std::bad_alloc& ba) {
 		throw ba;
 	}
-	interrupt_disable();
+	impl_ptr = new impl;
 	interrupt_vector_table[TIMER] = &impl::interrupt_timer;
 	while (!impl::ready_queue.empty()) {
 		impl::current_thread = impl::ready_queue.front();
@@ -252,7 +277,7 @@ void mutex::lock() {
 }
 
 void mutex::unlock() {
-	cpu::interrupt_enable();
+	cpu::interrupt_disable();
 	impl_ptr->impl_unlock();
 	cpu::interrupt_enable();
 }
