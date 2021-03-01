@@ -1,4 +1,3 @@
-#include "disk.h"
 #include "thread.h"
 #include <vector>
 #include <fstream>
@@ -31,12 +30,12 @@ void issue(void* i) {
 	std::ifstream file;
 	file.open(argv_local[*((int*)i) + 2]);
 	int data = -1;
-	
+
 	while (file >> data) {
 		inputData[*((int*)i)].push_back(data);
 	}
 	if (inputData[*((int*)i)].size() == 0)	count--;
-	
+
 	started++;
 	cv1.broadcast();
 	mutex1.unlock();
@@ -51,7 +50,7 @@ void issue(void* i) {
 		}
 		int tmp = inputData[*index][s];
 		diskQueue.push_back({ *index, tmp });
-		print_request(*index, tmp);
+		//print_request(*index, tmp);
 		++s;
 		cv1.broadcast();
 		cv1.wait(mutex1);
@@ -60,7 +59,7 @@ void issue(void* i) {
 	mutex1.unlock();
 	file.close();
 }
-	
+
 
 void service(void* s) {
 	std::vector<thread*> threads;
@@ -95,7 +94,7 @@ void service(void* s) {
 
 		currentPos = best.second;
 		++current[best.first];
-		print_service(best.first, best.second);
+		//print_service(best.first, best.second);
 		diskQueue.erase(diskQueue.begin() + bestIndex);
 
 		if (current[best.first] == ((int)inputData[best.first].size() - 1)) {
@@ -106,10 +105,10 @@ void service(void* s) {
 			cv1.broadcast();
 		}
 	}
-	
+
 	mutex1.unlock();
-	
-	
+
+
 	for (size_t i = 0; i < threads.size(); ++i) {
 		(*(threads[i])).join();
 		delete threads[i];
@@ -117,7 +116,7 @@ void service(void* s) {
 
 }
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
 	readData(argc, argv);
-	cpu::boot((thread_startfunc_t)service, (void*)100, 0);
+	cpu::boot(1, (thread_startfunc_t)service, (void*)100, false, false, 0);
 }

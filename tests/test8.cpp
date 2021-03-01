@@ -23,5 +23,5 @@ void parent(void* a)
 
 int main()
 {
-	cpu::boot(1, (thread_startfunc_t)parent, (void*)parent, false, false, 0);
+	cpu::boot(1, (thread_startfunc_t)parent, (void*)(&parent), false, false, 0);
 }

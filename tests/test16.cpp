@@ -51,8 +51,7 @@ void thread3(void* a)
 	cout << "thead 3 called " << endl;
 	cout << "setting thread3_done = 1" << endl;
 	thread3_done = 1;
-	t_4->join();
-	t_5->join();
+	t_2->join();
 	mu1.unlock();
 }
 
@@ -62,7 +61,7 @@ void thread4(void* a)
 	cout << "thead 4 called " << endl;
 	cout << "setting thread4_done = 1" << endl;
 	thread4_done = 1;
-	t_5->join();
+	t_2->join();
 	mu1.unlock();
 }
 
@@ -72,6 +71,7 @@ void thread5(void* a)
 	cout << "thead 5 called " << endl;
 	cout << "setting thread5_done = 1" << endl;
 	thread5_done = 1;
+	t_2->join();
 	mu1.unlock();
 }
 
@@ -93,11 +93,11 @@ void parentThread(void* a)
 
 	thread1((void*)"thread 1");
 	thread::yield();
-	thread2((void*)"thread 1");
+	thread2((void*)"thread 2");
 	thread::yield();
-	thread3((void*)"thread 1");
-	thread4((void*)"thread 1");
-	thread5((void*)"thread 1");
+	thread3((void*)"thread 3");
+	thread4((void*)"thread 4");
+	thread5((void*)"thread 5");
 
 	cout << "parent finished" << endl;
 	mu1.unlock();
