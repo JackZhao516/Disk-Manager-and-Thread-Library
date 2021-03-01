@@ -9,5 +9,12 @@
 	tests/test7.cpp
 	tests/test8.cpp
 	tests/test9.cpp
-
+	tests/test10.cpp
+	tests/test11.cpp
+	tests/test12.cpp
+	tests/test13.cpp
+	tests/test14.cpp
+	tests/test15.cpp
+	tests/test16.cpp
+	tests/test17.cpp
 	
