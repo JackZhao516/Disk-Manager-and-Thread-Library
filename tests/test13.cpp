@@ -42,7 +42,7 @@ void parent(void* a)
 	cout << "parent called with arg " << arg << endl;
 
 	while (true) {
-		thread t1((thread_startfunc_t)loop, (void*)"child thread");
+		thread((thread_startfunc_t)loop, (void*)"child thread");
 	}
 
 	loop((void*)"parent thread");
