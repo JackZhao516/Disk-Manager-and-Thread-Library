@@ -28,7 +28,9 @@ public:
     }
     ~context(){
         delete[] stack_address;
+        stack_address = nullptr;
         delete ucontext_ptr;
+        ucontext_ptr = nullptr;
     }
 } context;
 
@@ -101,13 +103,15 @@ public:
 
 		// release heap resources
 		delete thread_context;
+		thread_context = nullptr;
 	}
 
 	static void wrapper_func(thread_startfunc_t func, void* arg, context* context) {
 		cpu::interrupt_enable();
 		func(arg);
 		cpu::interrupt_disable();
-		context->finish = true;
+		//context->finish = true;
+		context->~context();
 		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
 	}
 
@@ -134,12 +138,13 @@ thread::thread(thread_startfunc_t func, void* arg) {
 thread::~thread() {
 	cpu::interrupt_disable();
 	delete this->impl_ptr;
+	this->impl_ptr = nullptr;
 	cpu::interrupt_enable();
 };
 
 void thread::join() {
 	cpu::interrupt_disable();
-	if (this->impl_ptr->thread_context) {
+	if (this->impl_ptr) {
 		impl_ptr->join_impl();
 	}
 	cpu::interrupt_enable();
@@ -166,8 +171,10 @@ void cpu::init(thread_startfunc_t func, void* arg) {
 		impl_ptr = new impl;
 	}
 	catch (std::bad_alloc& ba) {
+		printf("bad alloc");
 		throw ba;
 	}
+	
 	interrupt_vector_table[TIMER] = &impl::interrupt_timer;
 	//run the program
 	while (!impl::ready_queue.empty()) {
@@ -178,8 +185,9 @@ void cpu::init(thread_startfunc_t func, void* arg) {
 		    thread::impl::release_resource(impl::current_thread);
 		}
 	}
-	//release cpu resources
+	///release cpu resources
 	delete impl_ptr;
+	impl_ptr = nullptr;
 	cpu::interrupt_enable_suspend();
 }
 
@@ -244,6 +252,7 @@ mutex::mutex() {
 mutex::~mutex() {
 	cpu::interrupt_disable();
 	delete impl_ptr;
+	impl_ptr = nullptr;
 	cpu::interrupt_enable();
 }
 
@@ -305,6 +314,7 @@ cv::cv() {
 cv::~cv() {
 	cpu::interrupt_disable();
 	delete impl_ptr;
+    impl_ptr = nullptr;
 	cpu::interrupt_enable();
 }
 
