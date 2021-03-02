@@ -17,4 +17,5 @@
 	tests/test15.cpp
 	tests/test16.cpp
 	tests/test17.cpp
+	tests/test18.cpp
 	
