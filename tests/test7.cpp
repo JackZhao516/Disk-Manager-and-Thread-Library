@@ -16,7 +16,7 @@ int child_done = 0;		// global variable; shared between the two threads
 
 void child(void* a)
 {
-	char* message = (char*)a;
+	//char* message = (char*)a;
 	mutex2.lock();
 	cout << "mutex2 lock called by child" << endl;
 	mutex1.lock();
@@ -28,7 +28,7 @@ void child(void* a)
 
 void parent(void* a)
 {
-	intptr_t arg = (intptr_t)a;
+	//intptr_t arg = (intptr_t)a;
 	thread t1((thread_startfunc_t)child, (void*) "test message");
 	mutex1.lock();
 	thread::yield();

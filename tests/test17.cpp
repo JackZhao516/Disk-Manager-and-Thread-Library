@@ -30,7 +30,7 @@ void thread1(void* a)
 void parentThread(void* a)
 {
 	intptr_t arg = (intptr_t)a;
-	mu1.lock();
+	//mu1.lock();
 	cout << "parent called with arg " << arg << endl;
 	thread t1((thread_startfunc_t)thread1, (void*) "thread1 created");
 
@@ -40,7 +40,7 @@ void parentThread(void* a)
 	thread::yield();
 	
 	cout << "parent finished" << endl;
-	mu1.unlock();
+	//mu1.unlock();
 }
 
 int main()
