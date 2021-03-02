@@ -28,7 +28,9 @@ public:
     }
     ~context(){
         delete[] stack_address;
+        stack_address = nullptr;
         delete ucontext_ptr;
+        ucontext_ptr = nullptr;
     }
 } context;
 
@@ -52,17 +54,26 @@ public:
 			}
 	}
 
+	//static void release_context() {}
+
 	static std::queue<context*> ready_queue;
 	static context main_program;
 	static context* current_thread; // current running thread, should be set 
 									// before setcontext in cpu_init.
+	static context* before_thread;
 };
 
 std::queue<context*> cpu::impl::ready_queue;
 context cpu::impl::main_program;
 context* cpu::impl::current_thread;
+context* cpu::impl::before_thread = nullptr;
 
-
+//void cpu::impl::release_context() {
+//	if (!cpu::impl::before_thread) {
+//		thread::impl::release_resource(cpu::impl::before_thread);
+//		cpu::impl::before_thread = nullptr;
+//	}
+//}
 // ************
 // *  thread  *
 // ************
@@ -80,7 +91,9 @@ public:
 		catch (std::bad_alloc& ba) {
 			throw ba;
 		}
+		//cpu::impl::swap_context(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
 		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
+		thread::impl::release_context();
 	};
 
 	static void make_context(context* t, thread_startfunc_t func, void* arg) {
@@ -101,13 +114,24 @@ public:
 
 		// release heap resources
 		delete thread_context;
+		thread_context = nullptr;
+	}
+
+	static void release_context() {
+		if (cpu::impl::before_thread) {
+			thread::impl::release_resource(cpu::impl::before_thread);
+			cpu::impl::before_thread = nullptr;
+		}
 	}
 
 	static void wrapper_func(thread_startfunc_t func, void* arg, context* context) {
+		//thread::impl::release_context();
 		cpu::interrupt_enable();
 		func(arg);
 		cpu::interrupt_disable();
-		context->finish = true;
+		cpu::impl::before_thread = context;
+		//context->finish = true;
+		//cpu::impl::swap_context(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
 		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
 	}
 
@@ -134,12 +158,13 @@ thread::thread(thread_startfunc_t func, void* arg) {
 thread::~thread() {
 	cpu::interrupt_disable();
 	delete this->impl_ptr;
+	this->impl_ptr = nullptr;
 	cpu::interrupt_enable();
 };
 
 void thread::join() {
 	cpu::interrupt_disable();
-	if (this->impl_ptr->thread_context) {
+	if (this->impl_ptr) {
 		impl_ptr->join_impl();
 	}
 	cpu::interrupt_enable();
@@ -150,6 +175,7 @@ void thread::yield() {
 	if (!cpu::impl::ready_queue.empty()) {
 		cpu::impl::ready_queue_push_helper(cpu::impl::current_thread);
 		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
+		thread::impl::release_context();
 	}
 	cpu::interrupt_enable();
 };
@@ -166,20 +192,24 @@ void cpu::init(thread_startfunc_t func, void* arg) {
 		impl_ptr = new impl;
 	}
 	catch (std::bad_alloc& ba) {
+		printf("bad alloc");
 		throw ba;
 	}
+	
 	interrupt_vector_table[TIMER] = &impl::interrupt_timer;
 	//run the program
 	while (!impl::ready_queue.empty()) {
 		impl::current_thread = impl::ready_queue.front();
 		impl::ready_queue.pop();
 		swapcontext(impl::main_program.ucontext_ptr, impl::current_thread->ucontext_ptr);
-		if(impl::current_thread->finish){
-		    thread::impl::release_resource(impl::current_thread);
-		}
+		thread::impl::release_context();
+		//if(impl::current_thread->finish){
+		//    thread::impl::release_resource(impl::current_thread);
+		//}
 	}
-	//release cpu resources
+	///release cpu resources
 	delete impl_ptr;
+	impl_ptr = nullptr;
 	cpu::interrupt_enable_suspend();
 }
 
@@ -213,6 +243,7 @@ public:
 				throw ba;
 			}
 			swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
+			thread::impl::release_context();
 		}
 	};
 
@@ -244,6 +275,7 @@ mutex::mutex() {
 mutex::~mutex() {
 	cpu::interrupt_disable();
 	delete impl_ptr;
+	impl_ptr = nullptr;
 	cpu::interrupt_enable();
 }
 
@@ -278,6 +310,7 @@ public:
 		mutex::impl::impl_unlock(m.impl_ptr);
 
 		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
+		thread::impl::release_context();
 		m.impl_ptr->impl_lock();
 	}
 
@@ -305,6 +338,7 @@ cv::cv() {
 cv::~cv() {
 	cpu::interrupt_disable();
 	delete impl_ptr;
+    impl_ptr = nullptr;
 	cpu::interrupt_enable();
 }
 

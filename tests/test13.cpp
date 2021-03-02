@@ -20,6 +20,8 @@ void loop(void* a)
 {
 	char* id = (char*)a;
 	int i;
+	int* test = new int[1000000];
+	test[0] = 10;
 
 	mutex1.lock();
 	cout << "loop called with id " << id << endl;
