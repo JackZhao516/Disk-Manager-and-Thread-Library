@@ -47,6 +47,7 @@ void consumer2(void* a)
 	cout << "consumer2 decremented coke num to " << numCokes << endl;
 	if (numCokes == 0) {
 		cout << "producer signaled by consumer2" << endl;
+		thread::yield();
 		waitingProducers.signal();
 	}
 	else {
@@ -72,6 +73,7 @@ void consumer3(void* a)
 	}
 	else {
 		cout << "other consumer signaled by consumer3" << endl;
+		thread::yield();
 		waitingConsumers.signal();
 	}
 	mu1.unlock();
@@ -80,17 +82,17 @@ void consumer3(void* a)
 void producer(void* a)
 {
 	mu1.lock();
-	thread consumer1((thread_startfunc_t)consumer1, (void*) "consumer1 created");
-	thread consumer2((thread_startfunc_t)consumer2, (void*) "consumer2 created");
-	thread consumer3((thread_startfunc_t)consumer3, (void*) "consumer3 created");
+	thread c1((thread_startfunc_t)consumer1, (void*) "consumer1 created");
+	thread c2((thread_startfunc_t)consumer2, (void*) "consumer2 created");
+	thread c3((thread_startfunc_t)consumer3, (void*) "consumer3 created");
 	while (numCokes == MAX) {
 		cout << "producer wait called" << endl;
 		waitingProducers.wait(mu1);
 	}
 	// add coke to machine
 	cout << "original num coke: " << numCokes;
-	numCokes = MAX;
-	cout << " incremented to MAX=3" << endl;
+	numCokes++;
+	cout << " incremented by 1" << endl;
 	if (numCokes >= 1) {
 		waitingConsumers.signal();
 	}

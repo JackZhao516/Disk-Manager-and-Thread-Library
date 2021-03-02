@@ -21,6 +21,7 @@ void thread1(void* a)
 	mu1.lock();
 	cout << "thead 1 called " << endl;
 	t_1->~thread();
+	t_1->join();
 	cout << "setting thread1_done = 1" << endl;
 	thread1_done = 1;
 	mu1.unlock();

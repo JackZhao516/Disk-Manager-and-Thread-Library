@@ -21,6 +21,7 @@ void child(void* a)
 	cout << "mutex2 lock called by child" << endl;
 	mutex1.lock();
 	cout << "mutex1 lock called by child" << endl;
+	thread::yield();
 	mutex1.unlock();
 	mutex2.unlock();
 }
@@ -30,6 +31,7 @@ void parent(void* a)
 	intptr_t arg = (intptr_t)a;
 	thread t1((thread_startfunc_t)child, (void*) "test message");
 	mutex1.lock();
+	thread::yield();
 	cout << "mutex1 lock called by parent" << endl;
 	mutex2.lock();
 	cout << "mutex2 lock called by parent" << endl;
