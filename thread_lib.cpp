@@ -19,10 +19,13 @@ public:
     std::queue<context*> exit_queue;
     bool finish;
     char* stack_address;
+	int id;
+	static int max_id;
     context(){
         ucontext_ptr = new ucontext_t;
         finish = false;
         stack_address = nullptr;
+		id = max_id++;
     }
     ~context(){
         delete[] stack_address;
@@ -32,6 +35,7 @@ public:
     }
 } context;
 
+int context::max_id = 0;
 
 // ***********
 // *   cpu   *
@@ -209,16 +213,16 @@ class mutex::impl {
 public:
 	bool status;
 	std::queue<context*> lock_queue;
-	std::unordered_set<context*> func_with_lock;
+	std::unordered_set<int> func_with_lock;
 	impl() {
 		status = true;
 	}
 
 	void impl_lock() {
-        if (this->func_with_lock.find(cpu::impl::current_thread) == 
+        if (this->func_with_lock.find(cpu::impl::current_thread->id) == 
 			this->func_with_lock.end()) {
             try {
-                func_with_lock.insert(cpu::impl::current_thread);
+                func_with_lock.insert(cpu::impl::current_thread->id);
             }
             catch (std::bad_alloc& ba) {
                 cpu::interrupt_enable();
@@ -243,12 +247,12 @@ public:
 	};
 
 	static void impl_unlock(mutex::impl* impl_ptr) {
-		if (impl_ptr->func_with_lock.find(cpu::impl::current_thread) == 
+		if (impl_ptr->func_with_lock.find(cpu::impl::current_thread->id) == 
 			impl_ptr->func_with_lock.end()) {
             cpu::interrupt_enable();
 			throw std::runtime_error("unlock without lock");
 		}
-		impl_ptr->func_with_lock.erase(cpu::impl::current_thread);
+		impl_ptr->func_with_lock.erase(cpu::impl::current_thread->id);
 		impl_ptr->status = true;
 		if (!impl_ptr->lock_queue.empty()) {
 			cpu::impl::ready_queue_push_helper(impl_ptr->lock_queue.front());
