@@ -50,6 +50,7 @@ public:
 				cpu::impl::ready_queue.push(t);
 			}
 		catch (std::bad_alloc& ba) {
+		        cpu::interrupt_enable();
 				throw ba;
 			}
 	}
@@ -89,6 +90,7 @@ public:
 			thread_context->exit_queue.push(cpu::impl::current_thread);
 		}
 		catch (std::bad_alloc& ba) {
+            cpu::interrupt_enable();
 			throw ba;
 		}
 		//cpu::impl::swap_context(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
@@ -106,20 +108,9 @@ public:
 		cpu::impl::ready_queue.push(t);
 	}
 
-	static void release_resource(context* thread_context) {
-		// dump exit_queue into ready_queue
-		while (!thread_context->exit_queue.empty()) {
-			cpu::impl::ready_queue_push_helper(thread_context->exit_queue.front());
-		}
-
-		// release heap resources
-		delete thread_context;
-		thread_context = nullptr;
-	}
-
 	static void release_context() {
 		if (cpu::impl::before_thread) {
-			thread::impl::release_resource(cpu::impl::before_thread);
+			delete cpu::impl::before_thread;
 			cpu::impl::before_thread = nullptr;
 		}
 	}
@@ -130,7 +121,12 @@ public:
 		func(arg);
 		cpu::interrupt_disable();
 		cpu::impl::before_thread = context;
-		//context->finish = true;
+		//dump exit queue
+        while (!context->exit_queue.empty()) {
+            cpu::impl::ready_queue_push_helper(context->exit_queue.front());
+            context->exit_queue.pop();
+        }
+		context->finish = true;
 		//cpu::impl::swap_context(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
 		swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
 	}
@@ -150,6 +146,7 @@ thread::thread(thread_startfunc_t func, void* arg) {
 		this->impl_ptr = new impl(func, arg);
 	}
 	catch (std::bad_alloc& ba) {
+        cpu::interrupt_enable();
 		throw ba;
 	}
 	cpu::interrupt_enable();
@@ -164,8 +161,10 @@ thread::~thread() {
 
 void thread::join() {
 	cpu::interrupt_disable();
-	if (this->impl_ptr) {
-		impl_ptr->join_impl();
+	if (this->impl_ptr){
+        if (!this->impl_ptr->thread_context->finish) {
+            impl_ptr->join_impl();
+        }
 	}
 	cpu::interrupt_enable();
 };
@@ -193,6 +192,7 @@ void cpu::init(thread_startfunc_t func, void* arg) {
 	}
 	catch (std::bad_alloc& ba) {
 		printf("bad alloc");
+        cpu::interrupt_enable();
 		throw ba;
 	}
 	
@@ -226,12 +226,15 @@ public:
 	}
 
 	void impl_lock() {
-		try {
-			func_with_lock.insert(cpu::impl::current_thread);
-		}
-		catch (std::bad_alloc& ba) {
-			throw ba;
-		}
+        if (this->func_with_lock.find(cpu::impl::current_thread) == this->func_with_lock.end()) {
+            try {
+                func_with_lock.insert(cpu::impl::current_thread);
+            }
+            catch (std::bad_alloc& ba) {
+                cpu::interrupt_enable();
+                throw ba;
+            }
+        }
 		if (status) {
 			status = false;
 		}
@@ -240,6 +243,7 @@ public:
 				lock_queue.push(cpu::impl::current_thread);
 			}
 			catch (std::bad_alloc& ba) {
+                cpu::interrupt_enable();
 				throw ba;
 			}
 			swapcontext(cpu::impl::current_thread->ucontext_ptr, cpu::impl::main_program.ucontext_ptr);
@@ -249,6 +253,7 @@ public:
 
 	static void impl_unlock(mutex::impl* impl_ptr) {
 		if (impl_ptr->func_with_lock.find(cpu::impl::current_thread) == impl_ptr->func_with_lock.end()) {
+            cpu::interrupt_enable();
 			throw std::runtime_error("unlock without lock");
 		}
 		impl_ptr->func_with_lock.erase(cpu::impl::current_thread);
@@ -267,6 +272,7 @@ mutex::mutex() {
 		this->impl_ptr = new impl;
 	}
 	catch (std::bad_alloc& ba) {
+        cpu::interrupt_enable();
 		throw ba;
 	}
 	cpu::interrupt_enable();
@@ -304,6 +310,7 @@ public:
 			wait_queue.push(cpu::impl::current_thread);
 		}
 		catch (std::bad_alloc& ba) {
+            cpu::interrupt_enable();
 			throw ba;
 		}
 		
