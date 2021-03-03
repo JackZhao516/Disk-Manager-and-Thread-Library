@@ -20,9 +20,7 @@ void loop(void* a)
 {
 	char* id = (char*)a;
 	int i;
-	int* test = new int[1000000];
-	test[0] = 10;
-
+	new int* [10000];
 	mutex1.lock();
 	cout << "loop called with id " << id << endl;
 
@@ -43,11 +41,15 @@ void parent(void* a)
 	mutex1.lock();
 	cout << "parent called with arg " << arg << endl;
 
-	while (true) {
-		thread((thread_startfunc_t)loop, (void*)"child thread");
+	try {
+		while (true) {
+			thread((thread_startfunc_t)loop, (void*)"child thread");
+		}
+		loop((void*)"parent thread");
 	}
-
-	loop((void*)"parent thread");
+	catch (std::bad_alloc& ba) {
+		cout << "bad alloc\n";
+	}
 	mutex1.unlock();
 }
 

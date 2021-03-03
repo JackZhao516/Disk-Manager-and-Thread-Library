@@ -19,3 +19,4 @@
 	tests/test17.cpp
 	tests/test18.cpp
 	tests/test19.cpp
+	tests/test_main.cpp

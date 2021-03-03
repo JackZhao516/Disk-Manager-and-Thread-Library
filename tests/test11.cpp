@@ -22,10 +22,12 @@ void loop(void* a)
 
 	for (i = 0; i < 5; i++, g++) {
 		cout << id << ":\t" << i << "\t" << g << endl;
+		mutex1.unlock();
 		// mutex1.unlock(); the mutex stays locked
 		thread::yield();
 		// mutex1.lock();
 	}
+	mutex1.lock();
 	cout << id << ":\t" << i << "\t" << g << endl;
 	mutex1.unlock();
 }

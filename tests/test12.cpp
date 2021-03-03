@@ -29,7 +29,12 @@ void loop(void* a)
 	}
 	// deliberately releasing a lock it is not holding
 	// runtime error should be throwed
-	mutex2.unlock();
+	try {
+		mutex2.unlock();
+	}
+	catch (std::runtime_error& e) {
+		cout << "runtime/n";
+	}
 	cout << id << ":\t" << i << "\t" << g << endl;
 	mutex1.unlock();
 }
@@ -50,7 +55,12 @@ void loop_two(void* a)
 	}
 	// deliberately releasing a lock it is not holding
 	// runtime error should be throwed
-	mutex1.unlock();
+	try {
+		mutex1.unlock();
+	}
+	catch (std::runtime_error& e) {
+		cout << "runtime/n";
+	}
 	cout << id << ":\t" << i << "\t" << g << endl;
 	mutex2.unlock();
 }
