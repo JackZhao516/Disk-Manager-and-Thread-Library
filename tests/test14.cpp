@@ -38,10 +38,13 @@ void thread2(void* a)
 	cout << "thead 2 called " << endl;
 	cout << "setting thread2_done = 1" << endl;
 	thread2_done = 1;
-	t_2->join(); // thread joining itself
+	//t_2->join(); // thread joining itself
 	t_3->join();
 	t_4->join();
 	t_5->join();
+	t_5->join();
+	t_3->join();
+	t_4->join();
 	mu1.unlock();
 }
 
@@ -98,6 +101,13 @@ void parentThread(void* a)
 	thread3((void*)"thread 1");
 	thread4((void*)"thread 1");
 	thread5((void*)"thread 1");
+
+	t_2->join();
+	t_4->join();
+	t_5->join();
+	t_5->join();
+	t_3->join();
+	t_4->join();
 
 	cout << "parent finished" << endl;
 	mu1.unlock();

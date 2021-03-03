@@ -92,7 +92,7 @@ void producer(void* a)
 	// add coke to machine
 	cout << "original num coke: " << numCokes;
 	numCokes++;
-	cout << " incremented by 1" << endl;
+	cout << "incremented by 1" << endl;
 	if (numCokes >= 1) {
 		waitingConsumers.signal();
 	}

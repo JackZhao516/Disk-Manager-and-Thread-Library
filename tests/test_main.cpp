@@ -2,33 +2,40 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <vector>
+
+using namespace std;
 
 int num_thread = 0;
 int max_disk_queue = 0;
 int count = 0;
 int currentPos = 0;
 int started = 0;
-char** argv_local;
+std::vector<std::string> argv_local{"", "", "disk.in0" , "disk.in1" , 
+"disk.in2" , "disk.in3" , "disk.in4" , "disk.in5" };
+
 mutex mutex1;
 cv cv1;
 std::vector<std::vector<int>> inputData;
 std::vector<std::pair<int, int>> diskQueue;
 std::vector<int> current;
 
-void readData(int argc, char** argv) {
-	num_thread = argc - 1;
-	count = num_thread - 1;
-	max_disk_queue = std::atoi(argv[1]);
+void readData() {
+	num_thread = 2;
+	count = 1;
+	max_disk_queue = 3;
 	inputData.resize(num_thread - 1);
-	diskQueue.reserve(std::atoi(argv[1]));
+	diskQueue.reserve(3);
 	current.resize(num_thread - 1, -1);
-	argv_local = argv;
+	//argv_local = argv;
 }
 
 void issue(void* i) {
 	mutex1.lock();
 	std::ifstream file;
 	file.open(argv_local[*((int*)i) + 2]);
+	//cout << *(int*)i << endl;
+	//cout << file.is_open() << endl;
 	int data = -1;
 
 	while (file >> data) {
@@ -116,7 +123,19 @@ void service(void* s) {
 
 }
 
-int main(int argc, char** argv) {
-	readData(argc, argv);
+void create_file(std::string filename, int num1, int num2) {
+	std::ofstream outfile(filename);
+	outfile << num1 << std::endl;
+	outfile << num2 << std::endl;
+	outfile.close();
+}
+
+int main() {
+	create_file("disk.in0", 785, 53);
+	create_file("disk.in1", 350, 914);
+	create_file("disk.in2", 827, 567);
+	create_file("disk.in3", 302, 230);
+	create_file("disk.in4", 631, 11);
+	readData();
 	cpu::boot(1, (thread_startfunc_t)service, (void*)100, false, false, 0);
 }
