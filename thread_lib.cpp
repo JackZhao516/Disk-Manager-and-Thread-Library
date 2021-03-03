@@ -69,12 +69,7 @@ context cpu::impl::main_program;
 context* cpu::impl::current_thread;
 context* cpu::impl::before_thread = nullptr;
 
-//void cpu::impl::release_context() {
-//	if (!cpu::impl::before_thread) {
-//		thread::impl::release_resource(cpu::impl::before_thread);
-//		cpu::impl::before_thread = nullptr;
-//	}
-//}
+
 // ************
 // *  thread  *
 // ************
