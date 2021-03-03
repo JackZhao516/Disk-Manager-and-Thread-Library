@@ -28,8 +28,8 @@ void thread1(void* a)
 	cout << "thead 1 called " << endl;
 	cout << "setting thread1_done = 1" << endl;
 	thread1_done = 1;
-	t_2->join();
 	mu1.unlock();
+	t_2->join();
 }
 
 void thread2(void* a)
@@ -38,6 +38,7 @@ void thread2(void* a)
 	cout << "thead 2 called " << endl;
 	cout << "setting thread2_done = 1" << endl;
 	thread2_done = 1;
+	mu1.unlock();
 	//t_2->join(); // thread joining itself
 	t_3->join();
 	t_4->join();
@@ -45,28 +46,27 @@ void thread2(void* a)
 	t_5->join();
 	t_3->join();
 	t_4->join();
-	mu1.unlock();
 }
 
 void thread3(void* a)
 {
 	mu1.lock();
 	cout << "thead 3 called " << endl;
+	mu1.unlock();
 	cout << "setting thread3_done = 1" << endl;
 	thread3_done = 1;
 	t_4->join();
 	t_5->join();
-	mu1.unlock();
 }
 
 void thread4(void* a)
 {
 	mu1.lock();
 	cout << "thead 4 called " << endl;
+	mu1.unlock();
 	cout << "setting thread4_done = 1" << endl;
 	thread4_done = 1;
 	t_5->join();
-	mu1.unlock();
 }
 
 void thread5(void* a)
@@ -83,6 +83,7 @@ void parentThread(void* a)
 	intptr_t arg = (intptr_t)a;
 	mu1.lock();
 	cout << "parent called with arg " << arg << endl;
+	mu1.unlock();
 	thread t1((thread_startfunc_t)thread1, (void*) "thread1 created");
 	thread t2((thread_startfunc_t)thread2, (void*) "thread2 created");
 	thread t3((thread_startfunc_t)thread3, (void*) "thread3 created");
@@ -110,7 +111,6 @@ void parentThread(void* a)
 	t_4->join();
 
 	cout << "parent finished" << endl;
-	mu1.unlock();
 }
 
 int main()

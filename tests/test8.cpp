@@ -17,8 +17,8 @@ void parent(void* a)
 	thread* arg = (thread*)a; // the ptr to parent thread obj
 	mutex1.lock();
 	cout << "mutex1 lock called by parent" << endl;
-	arg->join();
 	mutex1.unlock();
+	arg->join();
 }
 
 int main()
